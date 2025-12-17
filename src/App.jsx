@@ -9,6 +9,7 @@ import {
 
 import Splash from "./components/Splash";
 import Login from "./components/Login";
+import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import Contact from "./components/Contact";
 import About from "./components/About"
@@ -27,6 +28,7 @@ function AppWrapper() {
     const hideNavbar =
         location.pathname === "/" ||
         location.pathname === "/login" ||
+        location.pathname === "/register" ||
         location.pathname === "/profile" ||
         location.pathname === "/booking" ||
         location.pathname === "/edit-profile" ||
@@ -53,6 +55,7 @@ function AppWrapper() {
             <Routes>
                 <Route path="/" element={<Splash />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />

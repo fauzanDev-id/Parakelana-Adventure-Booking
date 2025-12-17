@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -78,9 +78,9 @@ const Login = () => {
                 {/* Link Registrasi */}
                 <p className="text-sm text-center mb-8 text-gray-700 font-medium">
                     Belum punya akun?{" "}
-                    <a href="#" className="text-[#3F4F44] font-bold hover:underline transition-all">
+                    <Link to="/register" className="text-[#3F4F44] font-bold hover:underline transition-all">
                         Registrasi sekarang
-                    </a>
+                    </Link>
                 </p>
 
                 {/* Tombol Login */}
