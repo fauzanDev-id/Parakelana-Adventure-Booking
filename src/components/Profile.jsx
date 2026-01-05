@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FiEdit2 } from "react-icons/fi";
 import {
     FaUserEdit,
@@ -15,6 +15,9 @@ import {
 import { MdPhotoLibrary } from "react-icons/md";
 import lampu from "../assets/bakpao.png";
 import { useNavigate } from "react-router-dom";
+import { auth, db } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -57,6 +60,7 @@ export default function Profile() {
                 }
             });
     const [showCart, setShowCart] = useState(false);
+    const [profileName, setProfileName] = useState("Namamu");
 
     const handleLogout = () => {
         navigate("/");
@@ -65,6 +69,65 @@ export default function Profile() {
     const handleBack = () => {
         navigate("/dashboard");
     };
+
+    useEffect(() => {
+        let unsubSnapshot = null;
+
+        const loadFromLocal = () => {
+            try {
+                const stored = localStorage.getItem("parakelanaProfile");
+                if (stored) {
+                    const p = JSON.parse(stored);
+                    if (p && p.name) setProfileName(p.name);
+                }
+            } catch (e) {
+                // ignore
+            }
+        };
+
+        // listen auth state
+        const unsubAuth = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const docRef = doc(db, "profiles", user.uid);
+                    // try realtime snapshot
+                    unsubSnapshot = onSnapshot(docRef, (snap) => {
+                        if (snap.exists()) {
+                            const d = snap.data();
+                            if (d && d.name) setProfileName(d.name);
+                        }
+                    });
+                    // also attempt initial get if snapshot not fired yet
+                    const snap = await getDoc(docRef);
+                    if (snap.exists()) {
+                        const d = snap.data();
+                        if (d && d.name) setProfileName(d.name);
+                    }
+                    return;
+                } catch (err) {
+                    console.error("Gagal mengambil profile dari Firestore:", err);
+                }
+            }
+
+            // fallback
+            loadFromLocal();
+        });
+
+        // listen to localStorage changes (for non-auth flows)
+        const onStorage = (e) => {
+            if (e.key === "parakelanaProfile") loadFromLocal();
+        };
+        window.addEventListener("storage", onStorage);
+
+        // initial load
+        loadFromLocal();
+
+        return () => {
+            if (unsubSnapshot) unsubSnapshot();
+            if (unsubAuth) unsubAuth();
+            window.removeEventListener("storage", onStorage);
+        };
+    }, []);
 
     const updateCartQuantity = (id, newQuantity) => {
         const updatedCart = cart.map(item => {
@@ -127,7 +190,7 @@ export default function Profile() {
                     </div>
                 </div>
                 <h2 className="mt-4 text-center text-2xl font-bold text-[#3F4F44]">
-                    Namamu
+                    {profileName || "Namamu"}
                 </h2>
             </div>
 

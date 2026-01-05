@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaCreditCard, FaCheckCircle } from "react-icons/fa";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { FaArrowLeft, FaCreditCard, FaCheckCircle, FaQrcode } from "react-icons/fa";
+import qrisImg from "../assets/qris-placeholder.svg";
 
 export default function Checkout() {
     const navigate = useNavigate();
@@ -48,8 +51,42 @@ export default function Checkout() {
     const totalPrice = cart.reduce((s, it) => s + Number(it.totalPrice || 0), 0);
     const totalItems = cart.reduce((s, it) => s + Number(it.quantity || 0), 0);
 
-    const handlePay = () => {
+    const handlePay = async () => {
         if (cart.length === 0) return;
+
+        // Periksa apakah profil pengguna sudah lengkap (minimal name dan phone)
+        try {
+            let profile = null;
+
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    const snap = await getDoc(doc(db, "profiles", user.uid));
+                    if (snap.exists()) profile = snap.data();
+                } catch (err) {
+                    console.error("Gagal membaca profile dari Firestore:", err);
+                }
+            }
+
+            // fallback ke localStorage bila tidak ada user atau profile
+            if (!profile) {
+                try {
+                    const stored = localStorage.getItem("parakelanaProfile");
+                    profile = stored ? JSON.parse(stored) : null;
+                } catch (e) {
+                    console.error("Error membaca profil dari localStorage:", e);
+                }
+            }
+
+            if (!profile || !profile.name || !profile.phone) {
+                alert("Harap lengkapi profil Anda (nama & nomor telepon) sebelum melakukan pembayaran.");
+                navigate('/edit-profile');
+                return;
+            }
+        } catch (e) {
+            console.error("Error memeriksa profil:", e);
+        }
+
         setProcessing(true);
 
         // Simulate payment processing
@@ -107,12 +144,20 @@ export default function Checkout() {
                                     <input type="radio" name="payment" className="hidden" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
                                     <div className="flex items-center gap-2"><FaCreditCard /> Bayar di tempat (COD)</div>
                                 </label>
-                                <label className={`p-3 rounded-lg border ${paymentMethod === 'bank' ? 'border-[#3F4F44]' : 'border-gray-200'} cursor-pointer`}>
-                                    <input type="radio" name="payment" className="hidden" checked={paymentMethod === 'bank'} onChange={() => setPaymentMethod('bank')} />
-                                    <div className="flex items-center gap-2"><FaCreditCard /> Transfer Bank</div>
+                                <label className={`p-3 rounded-lg border ${paymentMethod === 'qris' ? 'border-[#3F4F44]' : 'border-gray-200'} cursor-pointer`}>
+                                    <input type="radio" name="payment" className="hidden" checked={paymentMethod === 'qris'} onChange={() => setPaymentMethod('qris')} />
+                                    <div className="flex items-center gap-2"><FaQrcode /> QRIS</div>
                                 </label>
                             </div>
                         </div>
+
+                        {paymentMethod === 'qris' && (
+                            <div className="bg-white rounded-xl p-4 shadow-soft flex flex-col items-center gap-3">
+                                <p className="font-semibold">Scan QRIS berikut untuk menyelesaikan pembayaran</p>
+                                <img src={qrisImg} alt="QRIS Placeholder" className="w-64 h-64 object-contain bg-white p-2 rounded" />
+                                <p className="text-sm text-gray-600">(Ini adalah gambar QRIS mentahan untuk demo)</p>
+                            </div>
+                        )}
 
                         <div className="flex gap-4">
                             <button onClick={() => navigate('/dashboard')} className="btn-secondary flex-1">Kembali</button>
